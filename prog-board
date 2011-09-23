@@ -4,7 +4,7 @@ import os, sys, serial, re, time
 SHIP_BOOTCMD = """nand read 0x80300000 280000 400000 ; bootm 0x80300000"""
 SHIP_BOOTARGS = """console=ttyS2,115200n8 root=/dev/mtdblock4 rootfstype=jffs2 ro rootwait quiet usb-storage.delay_use=0"""
 
-SD_BOOTCMD = """mmc rescan; fatload mmc 0 0x80300000 uImage; bootm 0x80300000"""
+SD_BOOTCMD = """mmc init; mmc rescan; fatload mmc 0 0x80300000 uImage; bootm 0x80300000"""
 SD_BOOTARGS = """console=ttyS2,115200n8 root=/dev/mmcblk0p2 ro rootwait usb-storage.delay_use=0"""
 
 class Echoer(serial.Serial):
