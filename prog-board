@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+import os, sys, serial, re, time
+
+SHIP_BOOTCMD = """nand read 0x80300000 280000 400000 ; bootm 0x80300000"""
+SHIP_BOOTARGS = """console=ttyS2,115200n8 root=/dev/mtdblock4 rootfstype=jffs2 ro rootwait quiet usb-storage.delay_use=0"""
+
+SD_BOOTCMD = """mmc init; fatload mmc 0 0x80300000 uImage; bootm 0x80300000"""
+SD_BOOTARGS = """console=ttyS2,115200n8 root=/dev/mmcblk0p2 ro rootwait usb-storage.delay_use=0"""
+
+class Echoer(serial.Serial):
+    def __init__(self, *args, **kw):
+        serial.Serial.__init__(self, *args, **kw)
+
+    def readline(self):
+        r = serial.Serial.readline(self)
+        sys.stdout.write(r)
+        sys.stdout.flush()
+        return r
+
+    def write(self, w):
+        sys.stdout.write(w)
+        sys.stdout.flush()
+        return serial.Serial.write(self, w)
+
+    def writeline(self, w):
+        l = w + "\r\n"
+        r = self.write(l)
+        time.sleep(0.5)
+        return r
+
+def wait_for_re(ser, pattern):
+    r = re.compile(pattern)
+
+    while True:
+        l = ser.readline()
+        m = r.match(l)
+        if m != None:
+            return m
+
+def uboot_interrupt(ser):
+    "Wait for u-boot to ask us to press a key, then do so"
+    wait_for_re( ser, "^Die ID" )
+
+    # Next line will be 'Hit any key to stop autoboot'
+    for x in range(1, 5):
+        ser.write( "\n" )
+        time.sleep( 0.2 )
+
+def uboot_set_env(ser, name, val):
+    "Set the given u-boot environment variable to the given value"
+    assert isinstance( val, str )
+    assert '"' not in val
+    assert ' ' not in name
+    ser.writeline( 'setenv %s "%s"' % (name, val) )
+
+def uboot_saveenv(ser):
+    "Save the u-boot environment to flash"
+    ser.writeline( "saveenv" )
+
+def linux_login(ser):
+    "Wait for the login prompt, then log in"
+    wait_for_re(ser, "Student Robotics BeeLinux")
+
+    # Username
+    ser.writeline( "root" )
+    # Password
+    ser.writeline( "" )
+
+if len(sys.argv) != 2:
+    print "Usage: prog-board SERIAL_DEVICE"
+    exit(1)
+
+SERIAL_DEVICE = sys.argv[1]
+
+ser = Echoer( SERIAL_DEVICE, 115200, timeout=None )
+
+try:
+    print "Power-up your BeagleBoard now."
+    uboot_interrupt(ser)
+
+    # Load the u-boot environment variables that we eventually want to ship in
+    uboot_set_env(ser, "bootcmd", SHIP_BOOTCMD)
+    uboot_set_env(ser, "bootargs", SHIP_BOOTARGS)
+    uboot_set_env(ser, "bootdelay", "2" )
+    uboot_saveenv(ser)
+
+    # Now reconfigure the env in RAM for booting from the SD
+    uboot_set_env(ser, "bootargs", SD_BOOTARGS)
+    ser.writeline( SD_BOOTCMD )
+
+    # Linux boots... wait for login prompt
+    linux_login(ser)
+
+    ser.writeline( "cd /ship" )
+    ser.writeline( "./flash-all" )
+
+    wait_for_re( ser, "^All done." )
+    print "\n" * 5
+    print "Flashing complete -- your BeagleBoard is fully baked."
+
+except KeyboardInterrupt:
+    pass
+
+ser.close()
