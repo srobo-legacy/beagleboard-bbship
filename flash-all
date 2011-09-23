@@ -21,7 +21,6 @@ mkdir -p /tmp/newroot
 mount -t jffs2 /dev/mtdblock4 /tmp/newroot
 xzcat $ROOT_IMG | ( cd /tmp/newroot ; tar -x ; )
 sync
+umount /tmp/newroot
 
 echo "All done."
-
-
