@@ -1,6 +1,8 @@
 #!/bin/sh
 
-test -e u-boot.bin -a -e uImage -a -e sr2012-sr.1.tar.xz || ( echo "Missing files" ; exit ; )
+ROOT_IMG=sr2012-rc.1.tar.xz
+
+test -e u-boot.bin -a -e uImage -a -e $ROOT_IMG || ( echo "Missing files" ; exit ; )
 
 # Do u-boot
 echo "Flashing u-boot"
@@ -18,7 +20,7 @@ flash_eraseall -j /dev/mtd4
 mkdir -p /tmp/newroot
 mount -t jffs2 /dev/mtdblock4 /tmp/newroot
 cd /tmp/newroot
-xzcat | tar -x
+xzcat $ROOT_IMG | tar -x
 sync
 
 echo "All done."
