@@ -19,8 +19,7 @@ echo "Flashing the main filesystem"
 flash_eraseall -j /dev/mtd4
 mkdir -p /tmp/newroot
 mount -t jffs2 /dev/mtdblock4 /tmp/newroot
-cd /tmp/newroot
-xzcat $ROOT_IMG | tar -x
+xzcat $ROOT_IMG | ( cd /tmp/newroot ; tar -x ; )
 sync
 
 echo "All done."
