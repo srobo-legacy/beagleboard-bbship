@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ROOT_IMG=sr2012-rc.1.tar.xz
+ROOT_IMG=sr2012-rc.2.tar.xz
 
 test -e u-boot.bin -a -e uImage -a -e $ROOT_IMG || ( echo "Missing files" ; exit ; )
 
