@@ -1,0 +1,26 @@
+#!/bin/sh
+
+test -e u-boot.bin -a -e uImage -a -e sr2012-sr.1.tar.xz || ( echo "Missing files" ; exit ; )
+
+# Do u-boot
+echo "Flashing u-boot"
+flash_eraseall /dev/mtd1
+nandwrite -p /dev/mtd1 u-boot.bin
+
+# The kernel:
+echo "Flashing the kernel"
+flash_eraseall /dev/mtd3
+nandwrite -p /dev/mtd3 uImage
+
+# The main filesystem
+echo "Flashing the main filesystem"
+flash_eraseall -j /dev/mtd4
+mkdir -p /tmp/newroot
+mount -t jffs2 /dev/mtdblock4 /tmp/newroot
+cd /tmp/newroot
+xzcat | tar -x
+sync
+
+echo "All done."
+
+
