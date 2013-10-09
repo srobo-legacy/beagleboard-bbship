@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os, sys, serial, re, time
 
-SHIP_BOOTCMD = """nand read 0x80300000 280000 400000 ; bootm 0x80300000"""
+SHIP_BOOTCMD = """setenv bootcmd "usb start; if usb storage; then if fatload usb 0 0x80300000 sr-reset-the-power-board-software.ok; then mw 0x80300000 0 512; mmc write 0x80300000 0 1; reset; fi; fi; if fatload mmc 0 0x80300000 sr-boot; then source 0x80300000; fi; nand read 0x80300000 280000 400000; bootm 0x80300000;" """
 SHIP_BOOTARGS = """console=ttyS2,115200n8 root=/dev/mtdblock4 rootfstype=jffs2 ro rootwait quiet usb-storage.delay_use=0"""
 
 SD_BOOTCMD = """mmc init; mmc rescan; fatload mmc 0 0x80300000 uImage; bootm 0x80300000"""
@@ -66,6 +66,25 @@ def linux_login(ser):
     # Password
     ser.writeline( "" )
 
+flash_cmds = """mmc rescan
+mmc rescan 0
+fatload mmc 0 82000000 MLO-new
+
+nandecc hw
+nand erase 0 80000
+nand write 82000000 0 20000
+
+nand write 82000000 20000 20000
+nand write 82000000 40000 20000
+nand write 82000000 60000 20000
+
+fatload mmc 0 0x80200000 u-boot.img-new
+
+nandecc hw
+nand erase 80000 170000
+nand write 0x80200000 80000 170000
+"""
+
 if len(sys.argv) != 2:
     print "Usage: prog-board SERIAL_DEVICE"
     exit(1)
@@ -76,6 +95,18 @@ ser = Echoer( SERIAL_DEVICE, 115200, timeout=None )
 
 try:
     print "Power-up your BeagleBoard now."
+    uboot_interrupt(ser)
+
+    ser.writeline( "nand erase 0 0xFFFFFFF" )
+    time.sleep( 2 )
+
+    # Flash the whole thing
+    for l in flash_cmds.splitlines():
+        ser.writeline( l )
+        time.sleep(0.3)
+
+    # Now we've written u-boot, reboot into it
+    ser.writeline( "reset" )
     uboot_interrupt(ser)
 
     # Load the u-boot environment variables that we eventually want to ship in
