@@ -4,11 +4,6 @@ ROOT_IMG=sr2012-rc.2.tar.xz
 
 test -e u-boot.bin -a -e uImage -a -e $ROOT_IMG || ( echo "Missing files" ; exit ; )
 
-# Do u-boot
-echo "Flashing u-boot"
-flash_eraseall /dev/mtd1
-nandwrite -p /dev/mtd1 u-boot.bin
-
 # The kernel:
 echo "Flashing the kernel"
 flash_eraseall /dev/mtd3
