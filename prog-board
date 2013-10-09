@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os, sys, serial, re, time
 
-SHIP_BOOTCMD = """setenv bootcmd "usb start; if usb storage; then if fatload usb 0 0x80300000 sr-reset-the-power-board-software.ok; then mw 0x80300000 0 512; mmc write 0x80300000 0 1; reset; fi; fi; if fatload mmc 0 0x80300000 sr-boot; then source 0x80300000; fi; nand read 0x80300000 280000 400000; bootm 0x80300000;" """
+SHIP_BOOTCMD = """usb start; if usb storage; then if fatload usb 0 0x80300000 sr-reset-the-power-board-software.ok; then mw 0x80300000 0 512; mmc write 0x80300000 0 1; reset; fi; fi; if fatload mmc 0 0x80300000 sr-boot; then source 0x80300000; fi; nand read 0x80300000 280000 400000; bootm 0x80300000;"""
 SHIP_BOOTARGS = """console=ttyS2,115200n8 root=/dev/mtdblock4 rootfstype=jffs2 ro rootwait quiet usb-storage.delay_use=0"""
 
 SD_BOOTCMD = """mmc init; mmc rescan; fatload mmc 0 0x80300000 uImage; bootm 0x80300000"""
